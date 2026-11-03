@@ -2,6 +2,6 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+foreach (['/' => 'home', '/chatbot' => 'chatbot', '/rekomendasi' => 'recommendations', '/rencana-masak' => 'planner', '/dashboard' => 'dashboard', '/resep' => 'recipes', '/history' => 'history', '/login' => 'login', '/signup' => 'signup'] as $path => $page) {
+    Route::view($path, 'app', ['page' => $page])->name($page);
+}
