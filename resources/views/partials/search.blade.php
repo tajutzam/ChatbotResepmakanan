@@ -1,0 +1,1 @@
+<form class="search-box" id="search-form"><span aria-hidden="true">⌕</span><input name="q" aria-label="Cari resep atau bahan" placeholder="Cari resep atau bahan yang kamu punya…" value="{{ request('q') }}" maxlength="150"><button class="button" type="submit">Cari resep ↗</button></form>

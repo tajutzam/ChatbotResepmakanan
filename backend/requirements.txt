@@ -1,0 +1,6 @@
+Flask
+google-genai
+numpy
+python-dotenv
+pymongo
+sentence-transformers

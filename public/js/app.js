@@ -1,58 +1,135 @@
 (() => {
- 'use strict';
- const recipes = window.recipeData;
- const page = document.body.dataset.page;
- const content = document.querySelector('#content');
- const titles = {home:'Beranda',chatbot:'Chatbot resep',recommendations:'Rekomendasi resep',planner:'Rencana masak',dashboard:'Dashboard',recipes:'Menu resep',history:'Riwayat pencarian',login:'Masuk',signup:'Daftar'};
- const escape = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- const read = (key, fallback) => {try {return JSON.parse(localStorage.getItem('dapurkita.'+key)) ?? fallback;} catch {return fallback;}};
- const write = (key,value) => {try {localStorage.setItem('dapurkita.'+key,JSON.stringify(value));} catch {toast('Penyimpanan browser tidak tersedia. Perubahan hanya berlaku di halaman ini.');}};
- let saved = read('saved',[]); if (!Array.isArray(saved)) saved=[];
- let history = read('history',[]); if (!Array.isArray(history)) history=[];
- let plan = read('plan',{}); if (!plan || Array.isArray(plan) || typeof plan !== 'object') plan={};
- let category='Semua resep', query=new URLSearchParams(location.search).get('q') || '', onlySaved=false;
- let toastTimer;
- function toast(message){const node=document.querySelector('#toast');node.textContent=message;node.classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>node.classList.remove('visible'),3000);}
- function record(text){history=history.filter(h=>h.query!==text);history.unshift({query:text,date:new Date().toISOString()});history=history.slice(0,50);write('history',history);}
- function card(r){return `<article class="recipe-card"><div class="card-top"><span class="category ${r.color}">${r.category}</span><button class="save ${saved.includes(r.id)?'saved':''}" data-save="${r.id}" aria-label="${saved.includes(r.id)?'Hapus dari':'Simpan ke'} favorit: ${r.title}" aria-pressed="${saved.includes(r.id)}">${saved.includes(r.id)?'♥':'♡'}</button></div><h3><button class="title-button" data-detail="${r.id}">${r.title}</button></h3><p>${r.description}</p><div class="ingredients">${r.ingredients.slice(0,3).map(i=>i.replace(/^\d+\s*(ikat|siung|sdm|g|butir|buah|piring|papan)?\s*/, '')).join(' · ')} <span>+${r.ingredients.length-3} bahan</span></div><div class="card-meta"><span>◷ ${r.time} menit</span><span>♧ ${r.servings} porsi</span><span>• ${r.level}</span></div></article>`;}
- function heading(kicker,title,description){return `<div class="page-head"><div class="eyebrow">${kicker}</div><h1>${title}</h1><p>${description}</p></div>`;}
- function search(placeholder='Cari resep atau bahan yang kamu punya…'){return `<form class="search-box" id="search-form"><span aria-hidden="true">⌕</span><input name="q" aria-label="Cari resep atau bahan" placeholder="${placeholder}" value="${escape(query)}" maxlength="150"><button class="button" type="submit">Cari resep ↗</button></form>`;}
- function tabs(){return `<div class="tabs" aria-label="Kategori resep">${['Semua resep','Sayuran','Ayam','Telur','Nasi','Tempe & tahu'].map(c=>`<button class="tab ${category===c?'active':''}" data-category="${c}" aria-pressed="${category===c}">${c}</button>`).join('')}</div>`;}
- function promo(){return `<div class="side-panel chat-promo"><div class="round-icon">✧</div><h3>Di kulkas ada apa?<br>Yuk, jadiin masakan.</h3><p>Ceritakan bahan yang kamu punya. Teman dapurmu bantu carikan ide resepnya.</p><a class="button" href="/chatbot">Tanya chatbot <span>↗</span></a><span class="side-caption">Ide masak dimulai dari obrolan kecil</span></div><div class="side-panel"><h3>Masak jadi lebih mudah</h3><ol class="steps"><li><div><strong>Ceritakan bahanmu</strong>Apa yang tersedia di dapur?</div></li><li><div><strong>Temukan resepnya</strong>Pilih yang paling bikin lapar.</div></li><li><div><strong>Waktunya memasak</strong>Ikuti langkah, nikmati hasilnya.</div></li></ol><div class="tiny-note">♡ Tak perlu bahan mewah untuk membuat masakan istimewa.</div></div>`;}
- function renderHome(){content.innerHTML=`<section class="hero"><div class="hero-copy"><div class="eyebrow">DARI DAPURMU, UNTUK HARI YANG LEBIH HANGAT</div><h1>Hari ini, mau<br>masak <em>apa?</em></h1><p>Temukan resep sederhana dari bahan yang kamu punya.<br>Karena masakan terbaik dimulai dari dapur sendiri.</p>${search()}</div><div class="hero-art" aria-hidden="true"><div class="plate"><div class="plate-inner"><strong>♨</strong>made with love</div></div><span class="herb">❧</span><div class="hero-sticker">a little taste of home ♡</div></div></section><div class="quick"><span>Sering dicari:</span>${['Ayam','Telur','Tempe','Sayuran','Masakan 15 menit'].map(x=>`<button data-quick="${x==='Masakan 15 menit'?'15':x}">${x}</button>`).join('')}</div><div class="content-grid"><section><div class="section-heading"><h2>Inspirasi masak hari ini</h2><a href="/rekomendasi">Lihat semua ↗</a></div><p class="subtitle">Resep rumahan yang sederhana, rasanya istimewa.</p>${tabs()}<div class="recipe-grid" id="recipe-list"></div></section><aside class="right-column">${promo()}</aside></div><section class="bottom-banner"><div><h3>Dapur lebih terencana, hari lebih tenang.</h3><p>Susun menu masakmu, satu hari lezat dalam satu waktu.</p></div><a class="button secondary" href="/rencana-masak">Buat rencana masak ↗</a></section>`;renderCards();}
- function filtered(){return recipes.filter(r=>(category==='Semua resep'||r.category===category)&&(!onlySaved||saved.includes(r.id))&&(!query||`${r.title} ${r.ingredients.join(' ')} ${r.category} ${r.time}`.toLowerCase().includes(query.toLowerCase())));}
- function renderCards(){const list=document.querySelector('#recipe-list');if(!list)return;const rows=filtered();list.innerHTML=rows.length?rows.map(card).join(''):'<div class="empty">Belum ada resep yang cocok.<br><br>Coba bahan lain atau pilih semua resep.</div>';const count=document.querySelector('#result-count');if(count)count.textContent=`${rows.length} resep contoh tersedia`;}
- function renderRecipes(){content.innerHTML=heading(page==='recipes'?'KOLEKSI DAPUR':'DIPILIH UNTUK INSPIRASIMU',titles[page],page==='recipes'?'Jelajahi resep rumahan dan simpan yang ingin kamu coba.':'Ide masakan sederhana untuk setiap hari. Mulai dari bahan favoritmu.')+`<div class="filter-row">${search()}<select id="saved-filter" aria-label="Tampilkan koleksi"><option value="all">Semua koleksi</option><option value="saved">Resep tersimpan</option></select></div>${tabs()}<p class="subtitle" id="result-count"></p><div class="recipe-grid" id="recipe-list"></div>`;renderCards();}
- function renderDashboard(){const name=read('profile',{}).name || 'Teman Dapur';content.innerHTML=heading('DAPUR PRIBADI',`Halo, ${escape(name)}! ☀`,'Sedikit inspirasi untuk cerita lezatmu berikutnya.')+`<div class="stats"><a href="/resep" class="stat"><small>Resep tersimpan</small><strong>${saved.length}</strong></a><a href="/rencana-masak" class="stat"><small>Rencana masak</small><strong>${Object.values(plan).filter(id=>recipes.some(r=>r.id===Number(id))).length}</strong></a><a href="/history" class="stat"><small>Pencarianmu</small><strong>${history.length}</strong></a></div><div class="content-grid"><section><div class="section-heading"><h2>Resep favoritmu</h2><a href="/resep">Jelajahi resep ↗</a></div><p class="subtitle">Simpan ide sekarang, masak kapan saja.</p><div class="recipe-grid">${saved.length?recipes.filter(r=>saved.includes(r.id)).map(card).join(''):'<div class="empty">Koleksi favoritmu masih kosong.<br><br><a class="button" href="/resep">Temukan resep pertama</a></div>'}</div></section><aside>${promo()}</aside></div>`;}
- const days=['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'];
- function renderPlanner(){content.innerHTML=heading('SATU MINGGU, BANYAK RASA','Rencana masak','Susun satu menu pilihan untuk setiap hari. Rencanamu tersimpan di browser ini.')+`<div class="planner-grid">${days.map(day=>{const r=recipes.find(r=>r.id===Number(plan[day]));return `<section class="day"><div class="eyebrow">MENU HARIAN</div><h3>${day}</h3>${r?`<div class="planned"><button class="title-button" data-detail="${r.id}">${r.title}</button><br><small>◷ ${r.time} menit · ${r.servings} porsi</small></div>`:'<p class="subtitle">Belum ada rencana. Mau masak apa?</p>'}<select data-day="${day}" aria-label="Pilih resep untuk ${day}"><option value="">Pilih resep…</option>${recipes.map(x=>`<option value="${x.id}" ${r?.id===x.id?'selected':''}>${x.title}</option>`).join('')}</select>${r?`<button class="text-button" data-remove-day="${day}" style="margin-top:15px">Hapus rencana</button>`:''}</section>`;}).join('')}</div>`;}
- function renderHistory(){content.innerHTML=heading('JEJAK INSPIRASIMU','Riwayat pencarian','Temukan kembali ide masakan yang pernah kamu cari.')+`<div class="section-heading"><p class="subtitle">${history.length} pencarian tersimpan di browser ini</p>${history.length?'<button class="text-button" id="clear-history">Hapus semua</button>':''}</div>${history.length?history.map((h,i)=>`<div class="history-row"><div><strong>⌕ ${escape(h.query)}</strong><small>${escape(new Date(h.date).toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'}))}</small></div><a class="button secondary" href="/rekomendasi?q=${encodeURIComponent(h.query)}">Cari lagi ↗</a><button class="text-button" data-delete-history="${i}" aria-label="Hapus pencarian ${escape(h.query)}">Hapus</button></div>`).join(''):'<div class="empty">Belum ada riwayat pencarian.<br><br><a class="button" href="/rekomendasi">Mulai cari resep</a></div>'}`;}
- function renderChat(){content.innerHTML=heading('TEMAN KECIL DI DAPURMU','Bahanmu, jadi inspirasi.','Bingung mau masak apa? Yuk, mulai dari apa yang kamu punya.')+`<div class="chat-layout"><section class="chat-window"><div class="chat-header"><div class="round-icon">✧</div><div><strong>Teman Dapur</strong><small>Simulasi chatbot · koleksi resep contoh</small></div><button class="text-button" id="reset-chat" style="margin-left:auto">Obrolan baru</button></div><div class="messages" id="messages" role="log" aria-live="polite"><div class="message">Halo, Teman Dapur! 👋<br>Ada bahan apa di dapurmu hari ini? Coba tulis <strong>ayam</strong>, <strong>telur</strong>, atau <strong>tahu dan wortel</strong>. Aku bantu carikan ide masaknya.</div></div><form class="search-box chat-input" id="chat-form"><input aria-label="Pesan untuk chatbot" name="message" placeholder="Aku punya telur dan nasi…" required maxlength="300"><button class="button" type="submit">Kirim ↗</button></form><div class="chat-disclaimer">Demo pencocokan bahan, belum terhubung AI. Gunakan resep sebagai inspirasi.</div></section><aside class="side-panel"><div class="round-icon">☼</div><h3>Mulai dari ide kecil</h3><p>Klik salah satu ide untuk memulai obrolan.</p>${['Aku punya telur dan nasi','Ada ayam di kulkas','Mau masak tahu dan wortel','Resep praktis 15 menit'].map(s=>`<button class="suggestion" data-chat="${s}">${s} ↗</button>`).join('')}<div class="tiny-note">Tips: sebutkan bahan utama agar pilihan resep lebih sesuai.</div></aside></div>`;if(query)chat(query);}
- function chat(text){if(!text.trim())return;record(text.trim());const messages=document.querySelector('#messages');const user=document.createElement('div');user.className='message user';user.textContent=text;messages.append(user);const words=text.toLowerCase().split(/\W+/).filter(w=>w.length>2&&!['aku','punya','ada','dan','mau','masak','resep','praktis','menit','kulkas','bahan','dengan','dari'].includes(w));const fast=/15|cepat|praktis/.test(text.toLowerCase());const matches=recipes.map(r=>({r,score:words.filter(w=>`${r.title} ${r.ingredients.join(' ')}`.toLowerCase().includes(w)).length})).filter(x=>x.score>0||(fast&&x.r.time<=15)).sort((a,b)=>b.score-a.score).slice(0,3);const reply=document.createElement('div');reply.className='message';reply.innerHTML=matches.length?`Ini ide yang cocok dari koleksi contoh kita. Cek bahan lengkapnya sebelum memasak, ya!${matches.map(({r})=>`<button class="result-link" data-detail="${r.id}"><strong>${r.title}</strong><br><small>◷ ${r.time} menit · ${r.ingredients.length} bahan · Lihat resep ↗</small></button>`).join('')}`:'Belum ada resep contoh yang cocok dengan bahan itu. Coba sebutkan ayam, telur, tempe, tahu, atau kangkung. Koleksi resep akan bertambah setelah dataset tersedia.';messages.append(reply);messages.scrollTop=messages.scrollHeight;}
- function renderAuth(){const signup=page==='signup';content.innerHTML=`<section class="auth"><div class="eyebrow">SELAMAT DATANG DI DAPURKITA</div><h1>${signup?'Cerita dapurmu<br>dimulai di sini.':'Senang bertemu<br>kamu lagi.'}</h1><p>${signup?'Simpan resep favorit dan susun rencana masakmu.':'Yuk, lanjutkan petualangan rasa hari ini.'}</p><p class="notice">Mode demo UI. Akun belum dibuat atau diverifikasi. Jangan gunakan kata sandi asli.</p><form id="auth-form">${signup?'<label>Nama lengkap<input name="name" placeholder="Nama panggilanmu" required maxlength="60" autocomplete="nickname"></label>':''}<label>Email<input type="email" name="email" placeholder="nama@email.com" required autocomplete="off"></label><label>Kata sandi demo<input type="password" name="password" placeholder="Minimal 8 karakter" required minlength="8" autocomplete="off"></label>${signup?'<label class="checkbox"><input type="checkbox" required>Saya memahami ini adalah simulasi UI.</label>':''}<button class="button" type="submit">${signup?'Coba daftar':'Masuk demo'} ↗</button></form><p style="text-align:center;margin:24px 0 0">${signup?'Sudah punya akun? <a href="/login">Masuk</a>':'Baru di DapurKita? <a href="/signup">Daftar gratis</a>'}</p></section>`;}
- function detail(id){const r=recipes.find(r=>r.id===id);if(!r)return;document.querySelector('#recipe-detail').innerHTML=`<span class="category ${r.color}">${r.category}</span><h2 id="recipe-title">${r.title}</h2><p>${r.description}</p><div class="detail-meta">◷ ${r.time} menit · ${r.servings} porsi · ${r.level} · Resep contoh</div><h3>Bahan-bahan</h3><ul>${r.ingredients.map(i=>`<li>${i}</li>`).join('')}</ul><h3>Cara memasak</h3><ol>${r.steps.map(s=>`<li>${s}</li>`).join('')}</ol><a class="button" href="/rencana-masak">Tambahkan ke rencana masak ↗</a>`;document.querySelector('#recipe-dialog').showModal();}
- document.querySelector('#breadcrumb').textContent=titles[page];
- document.title=`${titles[page]} — DapurKita`;
- ({home:renderHome,recipes:renderRecipes,recommendations:renderRecipes,dashboard:renderDashboard,planner:renderPlanner,history:renderHistory,chatbot:renderChat,login:renderAuth,signup:renderAuth}[page]||renderHome)();
- document.addEventListener('click',event=>{
-  const button=event.target.closest('button');if(!button)return;
-  if(button.dataset.detail)detail(Number(button.dataset.detail));
-  if(button.classList.contains('close'))document.querySelector('#recipe-dialog').close();
-  if(button.dataset.save){const id=Number(button.dataset.save);saved=saved.includes(id)?saved.filter(x=>x!==id):[...saved,id];write('saved',saved);toast(saved.includes(id)?'Resep disimpan ke favorit.':'Resep dihapus dari favorit.');if(page==='dashboard')renderDashboard();else renderCards();}
-  if(button.dataset.category){category=button.dataset.category;document.querySelectorAll('[data-category]').forEach(b=>{b.classList.toggle('active',b.dataset.category===category);b.setAttribute('aria-pressed',String(b.dataset.category===category));});renderCards();}
-  if(button.dataset.quick){record(button.dataset.quick);location.href='/rekomendasi?q='+encodeURIComponent(button.dataset.quick);}
-  if(button.dataset.chat)chat(button.dataset.chat);
-  if(button.id==='reset-chat'){query='';renderChat();}
-  if(button.dataset.removeDay){delete plan[button.dataset.removeDay];write('plan',plan);renderPlanner();toast('Rencana dihapus.');}
-  if(button.id==='clear-history'){history=[];write('history',history);renderHistory();toast('Riwayat pencarian dihapus.');}
-  if(button.dataset.deleteHistory!==undefined){history.splice(Number(button.dataset.deleteHistory),1);write('history',history);renderHistory();}
- });
- document.addEventListener('submit',event=>{
-  event.preventDefault();const form=event.target;
-  if(form.id==='search-form'){query=form.elements.q.value.trim();if(query)record(query);if(page==='home')location.href='/rekomendasi?q='+encodeURIComponent(query);else{renderCards();const url=new URL(location.href);url.searchParams.set('q',query);window.history.replaceState({},'',url);}}
-  if(form.id==='chat-form'){chat(form.elements.message.value.trim());form.reset();}
-  if(form.id==='auth-form'){write('profile',{name:page==='signup'?form.elements.name.value.trim():'Teman Dapur'});form.reset();location.href='/dashboard';}
- });
- document.addEventListener('change',event=>{const el=event.target;if(el.id==='saved-filter'){onlySaved=el.value==='saved';renderCards();}if(el.dataset.day){if(el.value)plan[el.dataset.day]=Number(el.value);else delete plan[el.dataset.day];write('plan',plan);renderPlanner();toast('Rencana masak diperbarui.');}});
- document.querySelector('#recipe-dialog').addEventListener('click',event=>{if(event.target===event.currentTarget)event.currentTarget.close();});
+  'use strict';
+  let recipes = window.recipeData || [];
+  const page = document.body.dataset.page;
+  const titles = {home:'Beranda',chatbot:'Chatbot resep',recommendations:'Rekomendasi resep',planner:'Rencana masak',dashboard:'Dashboard',recipes:'Menu resep',history:'Riwayat pencarian',login:'Masuk',signup:'Daftar'};
+  const read = (key, fallback) => { try { return JSON.parse(localStorage.getItem(`dapurkita.${key}`)) ?? fallback; } catch { return fallback; } };
+  const write = (key, value) => { try { localStorage.setItem(`dapurkita.${key}`, JSON.stringify(value)); } catch { toast('Penyimpanan browser tidak tersedia.'); } };
+  let saved = read('saved', []), history = read('history', []), plan = read('plan', {}), category = 'Semua resep', query = new URLSearchParams(location.search).get('q') || '', onlySaved = false, toastTimer;
+  let chatHistory = [], recipesLoading = true, userDataLoading = Boolean(document.body.dataset.authenticated === '1');
+  const userData = async () => { if (!userDataLoading) return; try { const response = await fetch('/api/user-data', { headers: { Accept: 'application/json' } }); if (!response.ok) return; const data = await response.json(); saved = (data.favorites || []).map(String); history = data.history || []; } finally { userDataLoading = false; } };
+  const saveUserData = async (url, options = {}) => { if (!document.body.dataset.authenticated) return; await fetch(url, { ...options, headers: { Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '', ...(options.headers || {}) } }); };
+  if (!Array.isArray(saved)) saved = [];
+  saved = saved.map(String);
+  if (!Array.isArray(history)) history = [];
+  if (!plan || Array.isArray(plan) || typeof plan !== 'object') plan = {};
+  const toast = message => { const node = document.querySelector('#toast'); if (!node) return; node.textContent = message; node.classList.add('visible'); clearTimeout(toastTimer); toastTimer = setTimeout(() => node.classList.remove('visible'), 3000); };
+  const record = text => { history = history.filter(item => item.query !== text); history.unshift({ query: text, date: new Date().toISOString() }); history = history.slice(0, 50); if (document.body.dataset.authenticated !== '1') write('history', history); saveUserData('/api/history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: text }) }); };
+  const ingredients = recipe => Array.isArray(recipe.ingredients) ? recipe.ingredients : String(recipe.ingredients || '').split(/[,;\n]+/).map(item => item.trim()).filter(Boolean);
+  const card = recipe => { const items = ingredients(recipe); return `<article class="recipe-card"><div class="card-top"><span class="category ${recipe.color || 'orange'}">${recipe.category || 'Resep'}</span><button class="save ${saved.includes(String(recipe.id)) ? 'saved' : ''}" data-save="${recipe.id}" aria-label="Simpan resep">${saved.includes(String(recipe.id)) ? '♥' : '♡'}</button></div><h3><button class="title-button" data-detail="${recipe.id}">${recipe.title}</button></h3><p>${recipe.description || recipe.document || ''}</p><div class="ingredients">${items.slice(0, 3).join(' · ')} <span>+${Math.max(0, items.length - 3)} bahan</span></div><div class="card-meta"><span>◷ ${recipe.time || '-'} menit</span><span>♧ ${recipe.servings || '-'} porsi</span><span>• ${recipe.level || 'Mudah'}</span></div></article>`; };
+  const filtered = () => recipes.filter(recipe => (category === 'Semua resep' || recipe.category === category) && (!onlySaved || saved.includes(String(recipe.id))) && (!query || `${recipe.title} ${ingredients(recipe).join(' ')} ${recipe.category} ${recipe.time}`.toLowerCase().includes(query.toLowerCase())));
+  const loadingMarkup = '<div class="recipe-loading" role="status" aria-live="polite"><span></span><span></span><span></span><p>Memuat resep dari dapur...</p></div>';
+  const renderCards = () => { const list = document.querySelector('#recipe-list'); if (!list) return; if (recipesLoading) { list.innerHTML = loadingMarkup; return; } const rows = filtered(); list.innerHTML = rows.length ? rows.map(card).join('') : '<div class="empty">Belum ada resep yang cocok.</div>'; const count = document.querySelector('#result-count'); if (count) count.textContent = `${rows.length} resep tersedia`; };
+  const renderDashboard = () => { if (page !== 'dashboard') return; const list = document.querySelector('#recipe-list'); if (list) list.innerHTML = recipesLoading ? loadingMarkup : (saved.length ? recipes.filter(recipe => saved.includes(String(recipe.id))).map(card).join('') : '<div class="empty">Koleksi favoritmu masih kosong.</div>'); document.querySelector('#saved-count')?.replaceChildren(document.createTextNode(saved.length)); document.querySelector('#plan-count')?.replaceChildren(document.createTextNode(Object.keys(plan).length)); document.querySelector('#history-count')?.replaceChildren(document.createTextNode(history.length)); };
+  const renderPlanner = () => { const list = document.querySelector('#planner-list'); if (!list) return; list.innerHTML = ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'].map(day => { const recipe = recipes.find(item => item.id === Number(plan[day])); return `<section class="day"><div class="eyebrow">MENU HARIAN</div><h3>${day}</h3>${recipe ? `<div class="planned"><button class="title-button" data-detail="${recipe.id}">${recipe.title}</button><br><small>◷ ${recipe.time} menit · ${recipe.servings} porsi</small></div>` : '<p class="subtitle">Belum ada rencana. Mau masak apa?</p>'}<select data-day="${day}"><option value="">Pilih resep…</option>${recipes.map(item => `<option value="${item.id}" ${recipe?.id === item.id ? 'selected' : ''}>${item.title}</option>`).join('')}</select></section>`; }).join(''); };
+  const renderHistory = () => { const list = document.querySelector('#history-list'); if (!list) return; document.querySelector('#history-count-label').textContent = `${history.length} pencarian tersimpan di browser ini`; list.innerHTML = history.map((item, index) => `<div class="history-row"><div><strong>⌕ ${item.query}</strong><small>${new Date(item.date).toLocaleString('id-ID')}</small></div><a class="button secondary" href="/rekomendasi?q=${encodeURIComponent(item.query)}">Cari lagi ↗</a><button class="text-button" data-delete-history="${index}">Hapus</button></div>`).join('') || '<div class="empty">Belum ada riwayat pencarian.</div>'; };
+  const detail = id => { const recipe = recipes.find(item => String(item.id) === String(id)); if (!recipe) return; const items = ingredients(recipe); const steps = Array.isArray(recipe.steps) ? recipe.steps : String(recipe.steps || '').split(/\d+[.)]\s*|\n+/).map(item => item.trim()).filter(Boolean); document.querySelector('#recipe-detail').innerHTML = `<span class="category ${recipe.color || 'orange'}">${recipe.category || 'Resep'}</span><h2 id="recipe-title">${recipe.title}</h2><p>${recipe.description || ''}</p><div class="detail-meta">◷ ${recipe.time || '-'} menit · ${recipe.servings || '-'} porsi · ${recipe.level || 'Mudah'}</div><h3>Bahan-bahan</h3><ul>${items.map(item => `<li>${item}</li>`).join('')}</ul><h3>Cara memasak</h3><ol>${steps.map(item => `<li>${item}</li>`).join('')}</ol>`; document.querySelector('#recipe-dialog').showModal(); };
+  const chat = async text => {
+    const message = text.trim();
+    if (!message) return;
+    const messages = document.querySelector('#messages');
+    const form = document.querySelector('#chat-form');
+    if (!messages || !form) return;
+    const userMessage = document.createElement('div');
+    userMessage.className = 'message user';
+    userMessage.textContent = message;
+    messages.append(userMessage);
+    const pending = document.createElement('div');
+    pending.className = 'message';
+    pending.textContent = 'Sedang mencari resep di koleksi DapurKita…';
+    messages.append(pending);
+    messages.scrollTop = messages.scrollHeight;
+    try {
+      const payload = new FormData(form);
+      payload.set('message', message);
+      chatHistory.slice(-8).forEach((turn, index) => {
+        payload.set(`history[${index}][role]`, turn.role);
+        payload.set(`history[${index}][content]`, turn.content);
+      });
+      const response = await fetch(form.action, {
+        method: 'POST',
+        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        body: payload,
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || 'Permintaan belum berhasil.');
+      pending.remove();
+      const reply = document.createElement('div');
+      reply.className = 'message';
+      const intro = document.createElement('p');
+      intro.className = 'chat-reply-text';
+      intro.textContent = result.message;
+      reply.append(intro);
+      chatHistory.push({ role: 'user', content: message }, { role: 'assistant', content: result.message });
+      (result.recipes || []).forEach(recipe => {
+        const card = document.createElement('article');
+        card.className = 'chat-recipe';
+        const title = document.createElement('h3');
+        title.textContent = recipe.title;
+        card.append(title);
+        const sourceLabel = document.createElement('small');
+        sourceLabel.className = 'chat-source-label';
+        sourceLabel.textContent = `Sumber: ${recipe.source}`;
+        card.append(sourceLabel);
+        const ingredientsHeading = document.createElement('strong');
+        ingredientsHeading.className = 'chat-recipe-label';
+        ingredientsHeading.textContent = 'Bahan';
+        card.append(ingredientsHeading);
+        const ingredients = document.createElement('p');
+        ingredients.className = 'chat-recipe-text';
+        ingredients.textContent = recipe.ingredients;
+        card.append(ingredients);
+        if (recipe.steps) {
+          const details = document.createElement('details');
+          const summary = document.createElement('summary');
+          summary.textContent = 'Cara memasak';
+          const steps = document.createElement('p');
+          steps.className = 'chat-recipe-text';
+          steps.textContent = recipe.steps;
+          details.append(summary, steps);
+          card.append(details);
+        }
+        reply.append(card);
+      });
+      messages.append(reply);
+    } catch (error) {
+      pending.textContent = error.message || 'Chatbot belum bisa dihubungi. Coba lagi.';
+    }
+    messages.scrollTop = messages.scrollHeight;
+  };
+  document.querySelector('#breadcrumb').textContent = titles[page]; document.title = `${titles[page]} — DapurKita`;
+  const searchRecipes = async value => {
+    const list = document.querySelector('#recipe-list');
+    if (list) list.innerHTML = loadingMarkup;
+    try {
+      const response = await fetch(`/api/recipes/search?q=${encodeURIComponent(value)}`, { headers: { Accept: 'application/json' } });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || 'Pencarian resep gagal.');
+      recipes = result.recipes || [];
+      recipesLoading = false;
+      renderCards();
+    } catch (error) {
+      toast(error.message || 'Pencarian resep gagal.');
+      renderCards();
+    }
+  };
+  const loadRecipes = async () => {
+    await userData();
+    try {
+      const response = await fetch('/api/recipes', { headers: { Accept: 'application/json' } });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || 'Resep belum bisa dimuat.');
+      recipes = result.recipes || [];
+    } catch (error) {
+      recipes = window.recipeData || [];
+      toast(error.message || 'Resep belum bisa dimuat.');
+    }
+    recipesLoading = false;
+    renderCards(); renderDashboard(); renderPlanner(); renderHistory();
+  };
+  loadRecipes();
+  document.addEventListener('click', event => { const button = event.target.closest('button'); if (!button) return; if (button.dataset.detail) detail(button.dataset.detail); if (button.classList.contains('close')) document.querySelector('#recipe-dialog').close(); if (button.dataset.save) { const id = String(button.dataset.save); saved = saved.includes(id) ? saved.filter(item => item !== id) : [...saved, id]; if (document.body.dataset.authenticated !== '1') write('saved', saved); saveUserData('/api/favorites/toggle', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ recipe_id: id }) }); renderCards(); renderDashboard(); } if (button.dataset.category) { category = button.dataset.category; document.querySelectorAll('[data-category]').forEach(item => item.classList.toggle('active', item.dataset.category === category)); renderCards(); }     if (button.dataset.quick) { record(button.dataset.quick); location.href = `/rekomendasi?q=${encodeURIComponent(button.dataset.quick)}`; } if (button.dataset.chat) { chat(button.dataset.chat); } if (button.id === 'reset-chat') { chatHistory = []; document.querySelector('#messages').innerHTML = '<div class="message">Halo, Teman Dapur!<br>Ada bahan apa di dapurmu hari ini?</div>'; } if (button.id === 'clear-history') { history = []; if (document.body.dataset.authenticated !== '1') write('history', history); saveUserData('/api/history', { method: 'DELETE' }); renderHistory(); } if (button.dataset.deleteHistory !== undefined) { const historyIndex = Number(button.dataset.deleteHistory); const historyItem = history[historyIndex]; history.splice(historyIndex, 1); if (document.body.dataset.authenticated !== '1') write('history', history); if (historyItem?.id) saveUserData(`/api/history/${historyItem.id}`, { method: 'DELETE' }); renderHistory(); } });
+  document.addEventListener('submit', async event => { const form = event.target; if (form.id === 'auth-form') return; event.preventDefault(); if (form.id === 'search-form') { query = form.elements.q.value.trim(); if (query) record(query); if (page === 'home') location.href = `/rekomendasi?q=${encodeURIComponent(query)}`; else if (query.length >= 2) searchRecipes(query); else loadRecipes(); } if (form.id === 'chat-form') { chat(form.elements.message.value); form.reset(); } if (form.id === 'embedding-form') { const status = document.querySelector('#embedding-status'); const button = form.querySelector('button'); button.disabled = true; status.textContent = 'Embedding sedang diproses...'; try { const response = await fetch(form.action, { method: 'POST', headers: { Accept: 'application/json', 'X-Embedding-Token': form.elements.token.value }, }); const result = await response.json(); if (!response.ok) throw new Error(result.message || 'Proses embedding gagal.'); status.textContent = `${result.message} Total: ${result.count}.`; form.reset(); } catch (error) { status.textContent = error.message || 'Proses embedding gagal.'; } finally { button.disabled = false; } } if (form.id === 'auth-form') { write('profile', { name: form.elements.name?.value.trim() || 'Teman Dapur' }); location.href = '/dashboard'; } });
+  document.addEventListener('change', event => { const element = event.target; if (element.id === 'saved-filter') { onlySaved = element.value === 'saved'; renderCards(); } if (element.dataset.day) { if (element.value) plan[element.dataset.day] = Number(element.value); else delete plan[element.dataset.day]; write('plan', plan); renderPlanner(); } });
+  document.querySelector('#recipe-dialog')?.addEventListener('click', event => { if (event.target === event.currentTarget) event.currentTarget.close(); });
 })();

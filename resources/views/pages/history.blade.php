@@ -1,0 +1,1 @@
+<section class="page-head"><div class="eyebrow">JEJAK INSPIRASIMU</div><h1>Riwayat pencarian</h1><p>Temukan kembali ide masakan yang pernah kamu cari.</p></section><div class="section-heading"><p class="subtitle" id="history-count-label"></p><button class="text-button" id="clear-history">Hapus semua</button></div><div id="history-list"></div>

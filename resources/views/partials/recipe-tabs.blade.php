@@ -1,0 +1,1 @@
+<div class="tabs" aria-label="Kategori resep">@foreach(['Semua resep','Sayuran','Ayam','Telur','Nasi','Tempe & tahu'] as $category)<button class="tab {{ $category === 'Semua resep' ? 'active' : '' }}" data-category="{{ $category }}" aria-pressed="{{ $category === 'Semua resep' ? 'true' : 'false' }}">{{ $category }}</button>@endforeach</div>

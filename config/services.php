@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'chatbot' => [
+        'url' => env('CHATBOT_API_URL', 'http://127.0.0.1:5001'),
+        'embedding_token' => env('CHATBOT_EMBEDDING_TOKEN'),
+    ],
+
 ];
