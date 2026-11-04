@@ -16,7 +16,7 @@
             .workspace{margin-left:0;min-height:100vh}
             .topbar{height:62px;padding:0 18px;border-bottom:1px solid var(--line)}
             .account{gap:10px}
-            .account .demo-label,.account>a:not(.button),.account form{display:none}
+            .account .demo-label{display:block;max-width:92px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;font-weight:700;color:var(--ink)}.account>a:not(.button){display:inline-flex;align-items:center;font-size:11px;color:var(--orange)}.account form{display:inline}.account .logout-form .text-button{padding:4px;font-size:10px;color:var(--muted)}.account>a.button{display:none}
             main{padding:24px 17px 34px}
             h1{font-size:28px;line-height:1.2}
             .page-head{margin-bottom:22px}
