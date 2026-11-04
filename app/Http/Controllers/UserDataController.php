@@ -50,7 +50,14 @@ class UserDataController extends Controller
             'query' => $validated['query'],
             'recipe_ids' => $validated['recipe_ids'] ?? [],
         ]);
-        SearchHistory::where('user_id', $request->user()->id)->latest()->skip(50)->delete();
+        $historyIdsToDelete = SearchHistory::where('user_id', $request->user()->id)
+            ->latest()
+            ->skip(50)
+            ->pluck('id');
+
+        if ($historyIdsToDelete->isNotEmpty()) {
+            SearchHistory::whereIn('id', $historyIdsToDelete)->delete();
+        }
 
         return response()->json(['saved' => true]);
     }
