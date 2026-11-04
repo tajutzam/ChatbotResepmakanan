@@ -15,7 +15,7 @@ class UserDataController extends Controller
 
         return response()->json([
             'favorites' => $user->favorites()->pluck('recipe_id')->values(),
-            'history' => $user->searchHistories()->latest()->limit(50)->get(['id', 'query', 'created_at']),
+            'history' => $user->searchHistories()->latest()->limit(50)->get(['id', 'query', 'recipe_ids', 'created_at']),
         ]);
     }
 
@@ -39,9 +39,17 @@ class UserDataController extends Controller
 
     public function storeHistory(Request $request): JsonResponse
     {
-        $validated = $request->validate(['query' => ['required', 'string', 'min:2', 'max:300']]);
+        $validated = $request->validate([
+            'query' => ['required', 'string', 'min:2', 'max:300'],
+            'recipe_ids' => ['sometimes', 'array', 'max:20'],
+            'recipe_ids.*' => ['required', 'string', 'max:255'],
+        ]);
         SearchHistory::where('user_id', $request->user()->id)->where('query', $validated['query'])->delete();
-        SearchHistory::create(['user_id' => $request->user()->id, 'query' => $validated['query']]);
+        SearchHistory::create([
+            'user_id' => $request->user()->id,
+            'query' => $validated['query'],
+            'recipe_ids' => $validated['recipe_ids'] ?? [],
+        ]);
         SearchHistory::where('user_id', $request->user()->id)->latest()->skip(50)->delete();
 
         return response()->json(['saved' => true]);
