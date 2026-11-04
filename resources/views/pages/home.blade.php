@@ -1,1 +1,31 @@
-<section class="hero"><div class="hero-copy"><div class="eyebrow">DARI DAPURMU, UNTUK HARI YANG LEBIH HANGAT</div><h1>Hari ini, mau<br>masak <em>apa?</em></h1><p>Temukan resep sederhana dari bahan yang kamu punya.<br>Karena masakan terbaik dimulai dari dapur sendiri.</p>@include('partials.search')</div><div class="hero-art" aria-hidden="true"><div class="plate"><div class="plate-inner"><strong>♨</strong>made with love</div></div><span class="herb">❧</span><div class="hero-sticker">a little taste of home ♡</div></div></section><div class="quick"><span>Sering dicari:</span>@foreach(['Ayam','Telur','Tempe','Sayuran','Masakan 15 menit'] as $item)<button data-quick="{{ $item === 'Masakan 15 menit' ? '15' : $item }}">{{ $item }}</button>@endforeach</div><div class="content-grid"><section><div class="section-heading"><h2>Inspirasi masak hari ini</h2><a href="{{ route('recommendations') }}">Lihat semua ↗</a></div><p class="subtitle">Resep rumahan yang sederhana, rasanya istimewa.</p>@include('partials.recipe-tabs')@include('partials.recipe-grid')</section><aside class="right-column">@include('partials.promo')</aside></div><section class="bottom-banner"><div><h3>Dapur lebih terencana, hari lebih tenang.</h3><p>Susun menu masakmu, satu hari lezat dalam satu waktu.</p></div><a class="button secondary" href="{{ route('planner') }}">Buat rencana masak ↗</a></section>
+<section class="hero">
+    <div class="hero-copy">
+        <div class="eyebrow">DARI DAPURMU, UNTUK HARI YANG LEBIH HANGAT</div>
+        <h1>Hari ini, mau<br>masak <em>apa?</em></h1>
+        <p>Temukan resep sederhana dari bahan yang kamu punya.<br>Karena masakan terbaik dimulai dari dapur sendiri.</p>
+        @include('partials.search')
+    </div>
+    <div class="hero-art" aria-hidden="true">
+        <div class="plate">
+            <div class="plate-inner"><strong>♨</strong>made with love</div>
+        </div><span class="herb">❧</span>
+        <div class="hero-sticker">a little taste of home ♡</div>
+    </div>
+</section>
+
+<div class="content-grid">
+    <section>
+        <div class="section-heading">
+            <h2>Inspirasi masak hari ini</h2><a href="{{ route('recommendations') }}">Lihat semua ↗</a>
+        </div>
+        <p class="subtitle">Resep rumahan yang sederhana, rasanya istimewa.</p>
+        @include('partials.recipe-tabs')@include('partials.recipe-grid')
+    </section>
+    <aside class="right-column">@include('partials.promo')</aside>
+</div>
+<section class="bottom-banner">
+    <div>
+        <h3>Dapur lebih terencana, hari lebih tenang.</h3>
+        <p>Susun menu masakmu, satu hari lezat dalam satu waktu.</p>
+    </div><a class="button secondary" href="{{ route('planner') }}">Buat rencana masak ↗</a>
+</section>

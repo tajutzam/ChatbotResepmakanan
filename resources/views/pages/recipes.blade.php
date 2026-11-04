@@ -8,4 +8,4 @@
 <div class="filter-row">@include('partials.search')<select id="saved-filter" aria-label="Tampilkan koleksi">
         <option value="all">Semua koleksi</option>
         <option value="saved">Resep tersimpan</option>
-    </select></div>@include('partials.recipe-tabs')<p class="subtitle" id="result-count"></p>@include('partials.recipe-grid')
+    </select></div><p class="subtitle" id="result-count"></p>@include('partials.recipe-grid')

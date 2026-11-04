@@ -2,7 +2,7 @@ import os
 from functools import lru_cache
 from typing import Any
 
-from pymongo import MongoClient
+from pymongo import MongoClient, UpdateOne
 
 
 @lru_cache(maxsize=1)
@@ -26,10 +26,17 @@ def has_recipe_embeddings() -> bool:
 
 def replace_recipe_embeddings(documents: list[dict[str, Any]]) -> int:
     collection = get_collection()
-    collection.delete_many({})
     if documents:
-        collection.insert_many(documents)
+        collection.bulk_write([
+            UpdateOne({'id': document['id']}, {'$set': document}, upsert=True)
+            for document in documents
+        ])
     return len(documents)
+
+
+def update_recipe(recipe_id: str, fields: dict[str, Any]) -> bool:
+    result = get_collection().update_one({'id': recipe_id}, {'$set': fields})
+    return result.matched_count > 0
 
 
 def load_recipe_embeddings() -> list[dict[str, Any]]:

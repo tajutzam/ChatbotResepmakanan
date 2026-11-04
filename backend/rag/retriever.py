@@ -2,14 +2,16 @@ import csv
 import glob
 import os
 import re
+import zipfile
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
+from xml.etree import ElementTree
 
 import numpy as np
 
 from .embedding import generate_embeddings
-from .vectorstore import has_recipe_embeddings, load_recipe_embeddings, replace_recipe_embeddings
+from .vectorstore import has_recipe_embeddings, load_recipe_embeddings, replace_recipe_embeddings, update_recipe
 
 DATASET_DIRECTORY = Path(__file__).resolve().parents[1] / "dataset"
 
@@ -36,13 +38,71 @@ def load_recipe_dataset() -> list[dict[str, str]]:
     return recipes
 
 
+def _read_xlsx(filename: str) -> list[dict[str, str]]:
+    namespace = {'main': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main', 'rel': 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'}
+    with zipfile.ZipFile(filename) as workbook:
+        shared = []
+        if 'xl/sharedStrings.xml' in workbook.namelist():
+            root = ElementTree.fromstring(workbook.read('xl/sharedStrings.xml'))
+            shared = [''.join(node.itertext()) for node in root.findall('.//main:si', namespace)]
+        sheet = ElementTree.fromstring(workbook.read('xl/worksheets/sheet1.xml'))
+        rows = []
+        for row in sheet.findall('.//main:row', namespace):
+            values = []
+            for cell in row.findall('main:c', namespace):
+                value = cell.find('main:v', namespace)
+                text = '' if value is None else value.text or ''
+                if cell.get('t') == 's' and text:
+                    text = shared[int(text)]
+                values.append(text)
+            rows.append(values)
+    if not rows:
+        return []
+    headers = rows[0]
+    return [dict(zip(headers, row + [''] * (len(headers) - len(row)))) for row in rows[1:]]
+
+
+def load_recipe_rows(filename: str) -> list[dict[str, str]]:
+    if filename.lower().endswith('.xlsx'):
+        return _read_xlsx(filename)
+    with open(filename, encoding='utf-8-sig', newline='') as dataset_file:
+        return list(csv.DictReader(dataset_file))
+
+
+def normalize_recipe_rows(rows: list[dict[str, str]], source: str) -> list[dict[str, str]]:
+    recipes = []
+    for row_number, row in enumerate(rows, start=1):
+        recipe_id = (row.get('id') or '').strip()
+        title = (row.get('nama resep') or '').strip()
+        ingredients = (row.get('bahan lengkap + takaran') or '').strip()
+        steps = (row.get('langkah memasak berurut') or '').strip()
+        if not recipe_id or not title or not ingredients:
+            continue
+        recipes.append({'id': recipe_id, 'source': source, 'title': title, 'ingredients': ingredients, 'steps': steps, 'document': f'Nama resep: {title}. Bahan: {ingredients}. Langkah memasak: {steps}'})
+    return recipes
+
+
+def import_recipe_file(filename: str) -> int:
+    recipes = normalize_recipe_rows(load_recipe_rows(filename), Path(filename).name)
+    if not recipes:
+        raise RuntimeError('File tidak berisi resep valid.')
+    vectors = generate_embeddings([recipe['document'] for recipe in recipes])
+    return replace_recipe_embeddings([{**recipe, 'embedding_vector': vector.tolist()} for recipe, vector in zip(recipes, vectors)])
+
+
 def build_recipe_embeddings() -> int:
     recipes = load_recipe_dataset()
     if not recipes:
-        raise RuntimeError(f"Dataset resep tidak ditemukan di {DATASET_DIRECTORY}.")
-    vectors = generate_embeddings([recipe["document"] for recipe in recipes])
-    documents = [{**recipe, "embedding_vector": vector.tolist()} for recipe, vector in zip(recipes, vectors)]
+        raise RuntimeError(f'Dataset resep tidak ditemukan di {DATASET_DIRECTORY}.')
+    vectors = generate_embeddings([recipe['document'] for recipe in recipes])
+    documents = [{**recipe, 'embedding_vector': vector.tolist()} for recipe, vector in zip(recipes, vectors)]
     return replace_recipe_embeddings(documents)
+
+
+def update_recipe_embedding(recipe_id: str, title: str, ingredients: str, steps: str) -> bool:
+    document = f'Nama resep: {title}. Bahan: {ingredients}. Langkah memasak: {steps}'
+    vector = generate_embeddings([document])[0]
+    return update_recipe(recipe_id, {'title': title, 'ingredients': ingredients, 'steps': steps, 'document': document, 'embedding_vector': vector.tolist()})
 
 
 class RecipeRetriever:
