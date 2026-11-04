@@ -143,6 +143,7 @@
     }
     recipesLoading = false;
     renderCards(); renderDashboard(); renderPlanner(); renderHistory();
+    if (page === 'recommendations' && query.length >= 2) await searchRecipes(query);
   };
   loadRecipes();
   document.addEventListener('click', event => { const recipeCard = event.target.closest('.recipe-card[data-detail]'); if (recipeCard && !event.target.closest('button')) detail(recipeCard.dataset.detail); });

@@ -52,6 +52,7 @@ class UserDataController extends Controller
         ]);
         $historyIdsToDelete = SearchHistory::where('user_id', $request->user()->id)
             ->latest()
+            ->get(['id'])
             ->skip(50)
             ->pluck('id');
 
