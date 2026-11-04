@@ -7,7 +7,7 @@ from sentence_transformers import SentenceTransformer
 
 @lru_cache(maxsize=1)
 def get_embedding_model() -> SentenceTransformer:
-    model_name = os.getenv("EMBEDDING_MODEL", "BAAI/bge-m3")
+    model_name = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
     print(f"Memuat model embedding {model_name}...")
 
     return SentenceTransformer(model_name)

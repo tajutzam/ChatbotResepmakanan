@@ -86,23 +86,24 @@ def import_recipe_file(filename: str) -> int:
     recipes = normalize_recipe_rows(load_recipe_rows(filename), Path(filename).name)
     if not recipes:
         raise RuntimeError('File tidak berisi resep valid.')
-    vectors = generate_embeddings([recipe['document'] for recipe in recipes])
-    return replace_recipe_embeddings([{**recipe, 'embedding_vector': vector.tolist()} for recipe, vector in zip(recipes, vectors)])
+    return replace_recipe_embeddings(recipes)
 
 
 def build_recipe_embeddings() -> int:
-    recipes = load_recipe_dataset()
+    existing = {recipe['id']: recipe for recipe in load_recipe_embeddings()}
+    recipes = {recipe['id']: recipe for recipe in load_recipe_dataset()}
+    recipes.update(existing)
     if not recipes:
         raise RuntimeError(f'Dataset resep tidak ditemukan di {DATASET_DIRECTORY}.')
-    vectors = generate_embeddings([recipe['document'] for recipe in recipes])
-    documents = [{**recipe, 'embedding_vector': vector.tolist()} for recipe, vector in zip(recipes, vectors)]
+    recipe_list = list(recipes.values())
+    vectors = generate_embeddings([recipe['document'] for recipe in recipe_list])
+    documents = [{**recipe, 'embedding_vector': vector.tolist()} for recipe, vector in zip(recipe_list, vectors)]
     return replace_recipe_embeddings(documents)
 
 
 def update_recipe_embedding(recipe_id: str, title: str, ingredients: str, steps: str) -> bool:
     document = f'Nama resep: {title}. Bahan: {ingredients}. Langkah memasak: {steps}'
-    vector = generate_embeddings([document])[0]
-    return update_recipe(recipe_id, {'title': title, 'ingredients': ingredients, 'steps': steps, 'document': document, 'embedding_vector': vector.tolist()})
+    return update_recipe(recipe_id, {'title': title, 'ingredients': ingredients, 'steps': steps, 'document': document})
 
 
 class RecipeRetriever:
