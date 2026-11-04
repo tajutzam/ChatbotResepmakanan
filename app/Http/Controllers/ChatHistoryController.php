@@ -22,6 +22,7 @@ class ChatHistoryController extends Controller
             'messages' => ['required', 'array', 'max:50'],
             'messages.*.role' => ['required', 'in:user,assistant'],
             'messages.*.content' => ['required', 'string', 'max:5000'],
+            'messages.*.recipes' => ['sometimes', 'array', 'max:12'],
         ]);
 
         $conversation = $request->user()->chatConversations()->find($validated['conversation_id'] ?? null);
@@ -45,7 +46,7 @@ class ChatHistoryController extends Controller
         abort_unless($conversation->user_id === $request->user()->id, 404);
 
         return response()->json([
-            'conversation' => $conversation->load('messages:id,chat_conversation_id,role,content,created_at'),
+            'conversation' => $conversation->load('messages:id,chat_conversation_id,role,content,recipes,created_at'),
         ]);
     }
 }

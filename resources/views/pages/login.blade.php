@@ -25,4 +25,5 @@
         @endif
         <button class="button" type="submit">{{ $page === 'signup' ? 'Coba daftar' : 'Masuk demo' }} ↗</button>
     </form>
+    <p class="auth-switch">@if ($page === 'signup') Sudah punya akun? <a href="{{ route('login') }}">Masuk di sini</a> @else Belum punya akun? <a href="{{ route('signup') }}">Daftar sekarang</a> @endif</p>
 </section>

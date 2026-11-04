@@ -8,7 +8,7 @@
   let saved = read('saved', []), history = read('history', []), plan = read('plan', {}), category = 'Semua resep', query = new URLSearchParams(location.search).get('q') || '', onlySaved = false, toastTimer;
   let chatHistory = [], chatConversationId = null, recipesLoading = true, userDataLoading = Boolean(document.body.dataset.authenticated === '1');
   const userData = async () => { if (!userDataLoading) return; try { const response = await fetch('/api/user-data', { headers: { Accept: 'application/json' } }); if (!response.ok) return; const data = await response.json(); saved = (data.favorites || []).map(String); history = data.history || []; } finally { userDataLoading = false; } };
-  const saveUserData = async (url, options = {}) => { if (!document.body.dataset.authenticated) return; await fetch(url, { ...options, headers: { Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '', ...(options.headers || {}) } }); };
+  const saveUserData = async (url, options = {}) => { if (document.body.dataset.authenticated !== '1') return null; const response = await fetch(url, { credentials: 'same-origin', ...options, headers: { Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '', ...(options.headers || {}) } }); if (!response.ok) throw new Error((await response.json()).message || 'Data user gagal disimpan.'); return response; };
   if (!Array.isArray(saved)) saved = [];
   saved = saved.map(String);
   if (!Array.isArray(history)) history = [];
@@ -26,7 +26,8 @@
   const detail = id => { const recipe = recipes.find(item => String(item.id) === String(id)); if (!recipe) return; const items = ingredients(recipe); const steps = Array.isArray(recipe.steps) ? recipe.steps : String(recipe.steps || '').split(/\d+[.)]\s*|\n+/).map(item => item.trim()).filter(Boolean); document.querySelector('#recipe-detail').innerHTML = `${recipe.photo_url ? `<img class="dialog-photo" src="${recipe.photo_url}" alt="${recipe.title || 'Foto resep'}">` : ''}<h2 id="recipe-title">${recipe.title}</h2><p>${recipe.description || ''}</p><div class="detail-meta">◷ ${recipe.time || '-'} menit · ${recipe.servings || '-'} porsi · ${recipe.level || 'Mudah'}</div><h3>Bahan-bahan</h3><ul>${items.map(item => `<li>${item}</li>`).join('')}</ul><h3>Cara memasak</h3><ol>${steps.map(item => `<li>${item}</li>`).join('')}</ol>`; document.querySelector('#recipe-dialog').showModal(); };
   const saveChat = () => saveUserData('/api/chat-history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conversation_id: chatConversationId, messages: chatHistory }) }).then(async response => { if (response.ok) chatConversationId = (await response.json()).conversation_id; });
   const loadChatHistory = async () => { const panel = document.querySelector('#chat-history-panel'); const list = document.querySelector('#chat-history-list'); if (!panel || !list || document.body.dataset.authenticated !== '1') return; const response = await fetch('/api/chat-history', { headers: { Accept: 'application/json' } }); const data = await response.json(); list.innerHTML = data.conversations?.length ? data.conversations.map(item => `<button class="chat-history-item" type="button" data-chat-conversation="${item.id}"><strong>${item.title || 'Percakapan baru'}</strong><small>${new Date(item.updated_at).toLocaleString('id-ID')}</small></button>`).join('') : '<p class="empty">Belum ada percakapan tersimpan.</p>'; panel.hidden = false; };
-  const openChat = async id => { const response = await fetch(`/api/chat-history/${id}`, { headers: { Accept: 'application/json' } }); if (!response.ok) return; const data = await response.json(); chatConversationId = data.conversation.id; chatHistory = data.conversation.messages.map(item => ({ role: item.role, content: item.content })); const messages = document.querySelector('#messages'); messages.innerHTML = ''; chatHistory.forEach(item => { const node = document.createElement('div'); node.className = `message${item.role === 'user' ? ' user' : ''}`; node.textContent = item.content; messages.append(node); }); document.querySelector('#chat-history-panel').hidden = true; };
+  const openChat = async id => { const response = await fetch(`/api/chat-history/${id}`, { headers: { Accept: 'application/json' } }); if (!response.ok) return; const data = await response.json(); chatConversationId = data.conversation.id; chatHistory = data.conversation.messages.map(item => ({ role: item.role, content: item.content, recipes: item.recipes || [] })); const messages = document.querySelector('#messages'); messages.innerHTML = ''; chatHistory.forEach(item => { const node = document.createElement('div'); node.className = `message${item.role === 'user' ? ' user' : ''}`; node.textContent = item.content; if (item.role === 'assistant') appendChatRecipes(node, item.recipes); messages.append(node); }); document.querySelector('#chat-history-panel').hidden = true; };
+  const appendChatRecipes = (container, recipes) => (recipes || []).forEach(recipe => { const card = document.createElement('article'); card.className = 'chat-recipe'; card.innerHTML = `<h3>${recipe.title}</h3><small class="chat-source-label">Sumber: ${recipe.source || 'Dataset resep'}</small><strong class="chat-recipe-label">Bahan</strong><p class="chat-recipe-text"></p><details><summary>Cara memasak</summary><p class="chat-recipe-text steps"></p></details>`; card.querySelector('.chat-recipe-text').textContent = recipe.ingredients || ''; card.querySelector('.steps').textContent = recipe.steps || ''; container.append(card); });
   const chat = async text => {
     const message = text.trim();
     if (!message) return;
@@ -64,7 +65,7 @@
       const renderReply = value => String(value).replace(/[&<>"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[character]).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>').replace(/\n/g, '<br>');
       intro.innerHTML = renderReply(result.message);
       reply.append(intro);
-      chatHistory.push({ role: 'user', content: message }, { role: 'assistant', content: result.message });
+      chatHistory.push({ role: 'user', content: message }, { role: 'assistant', content: result.message, recipes: result.recipes || [] });
       if ((result.recipes || []).length) {
         const relatedTitle = document.createElement('h3');
         relatedTitle.className = 'chat-related-title';
@@ -122,7 +123,7 @@
       if (!response.ok) throw new Error(result.message || 'Pencarian resep gagal.');
       recipes = result.recipes || [];
       recipesLoading = false;
-      await record(value, recipes.map(recipe => String(recipe.id)));
+      if (document.body.dataset.authenticated !== '1') await record(value, recipes.map(recipe => String(recipe.id)));
       renderCards();
     } catch (error) {
       toast(error.message || 'Pencarian resep gagal.');

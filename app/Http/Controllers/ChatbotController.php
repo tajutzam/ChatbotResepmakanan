@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\SearchHistory;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,7 +23,19 @@ class ChatbotController extends Controller
             return response()->json(['message' => 'Layanan resep Python belum berjalan.', 'recipes' => []], 503);
         }
 
-        return response()->json($response->json() ?? ['message' => 'Respons pencarian tidak valid.', 'recipes' => []], $response->status());
+        $result = $response->json() ?? ['message' => 'Respons pencarian tidak valid.', 'recipes' => []];
+
+        if ($response->successful() && $request->user()) {
+            $recipeIds = collect($result['recipes'] ?? [])->pluck('id')->map(fn ($id): string => (string) $id)->values()->all();
+            SearchHistory::where('user_id', $request->user()->id)->where('query', $validated['q'])->delete();
+            SearchHistory::create([
+                'user_id' => $request->user()->id,
+                'query' => $validated['q'],
+                'recipe_ids' => $recipeIds,
+            ]);
+        }
+
+        return response()->json($result, $response->status());
     }
 
     public function recipes(): JsonResponse
