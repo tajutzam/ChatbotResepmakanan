@@ -3,6 +3,7 @@
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChatbotController;
+use App\Http\Controllers\ChatHistoryController;
 use App\Http\Controllers\UserDataController;
 use Illuminate\Support\Facades\Route;
 
@@ -18,7 +19,7 @@ foreach ([
     '/signup' => 'signup',
 ] as $path => $page) {
     $route = Route::view($path, 'app', ['page' => $page])->name($page);
-    if ($page === 'dashboard' || $page === 'history' || $page === 'planner' || $page === 'chatbot') {
+    if ($page === 'dashboard' || $page === 'planner' || $page === 'chatbot') {
         $route->middleware('auth');
     }
 }
@@ -33,6 +34,9 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/api/history', [UserDataController::class, 'storeHistory'])->name('api.history.store');
     Route::delete('/api/history/{history}', [UserDataController::class, 'deleteHistory'])->name('api.history.delete');
     Route::delete('/api/history', [UserDataController::class, 'clearHistory'])->name('api.history.clear');
+    Route::get('/api/chat-history', [ChatHistoryController::class, 'index'])->name('api.chat-history');
+    Route::post('/api/chat-history', [ChatHistoryController::class, 'store'])->name('api.chat-history.store');
+    Route::get('/api/chat-history/{conversation}', [ChatHistoryController::class, 'show'])->name('api.chat-history.show');
 });
 
 Route::get('/api/recipes', [ChatbotController::class, 'recipes'])->name('api.recipes');

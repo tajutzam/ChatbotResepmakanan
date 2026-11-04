@@ -19,13 +19,12 @@
     <div class="sidebar-bottom">Dibuat untuk dapur Indonesia <span>♡</span></div>
 </aside>
 <nav class="mobile-bottom-nav" aria-label="Navigasi mobile">
-    @foreach (['home' => ['⌂', 'Beranda'], 'chatbot' => ['✧', 'Chatbot'], 'recommendations' => ['♡', 'Rekomendasi']] as $key => [$icon, $label])
+    @foreach (['home' => ['⌂', 'Beranda'], 'dashboard' => ['◫', 'Dashboard'], 'chatbot' => ['✧', 'Chatbot'], 'recommendations' => ['♡', 'Rekomendasi']] as $key => [$icon, $label])
         <a href="{{ route($key) }}" class="mobile-nav-item {{ $page === $key ? 'active' : '' }}" @if($page === $key) aria-current="page" @endif><span>{{ $icon }}</span><small>{{ $label }}</small></a>
     @endforeach
     <button class="mobile-nav-item" id="mobile-more" type="button" aria-expanded="false"><span>•••</span><small>Lainnya</small></button>
 </nav>
 <div class="mobile-more-menu" id="mobile-more-menu" hidden>
-    <a href="{{ route('dashboard') }}"><span>◫</span>Dashboard</a>
     <a href="{{ route('recipes') }}"><span>▤</span>Menu resep</a>
     <a href="{{ route('history') }}"><span>◷</span>Riwayat</a>
     @auth

@@ -33,6 +33,11 @@ class User extends Authenticatable
         return $this->hasMany(SearchHistory::class);
     }
 
+    public function chatConversations(): HasMany
+    {
+        return $this->hasMany(ChatConversation::class);
+    }
+
     protected function casts(): array
     {
         return [
