@@ -18,9 +18,13 @@ class ExampleTest extends TestCase
         $user = User::factory()->create();
 
         foreach (['/', '/chatbot', '/rekomendasi', '/rencana-masak', '/resep', '/history', '/login', '/signup'] as $path) {
-            $this->get($path)->assertOk()->assertSee('DapurKita')->assertSee('data-page=', false);
+            $response = in_array($path, ['/chatbot', '/rencana-masak', '/history'], true)
+                ? $this->actingAs($user)->get($path)
+                : $this->get($path);
+
+            $response->assertOk()->assertSee('KeenVado Meals')->assertSee('data-page=', false);
         }
 
-        $this->actingAs($user)->get('/dashboard')->assertOk()->assertSee('DapurKita')->assertSee('data-page=', false);
+        $this->actingAs($user)->get('/dashboard')->assertOk()->assertSee('KeenVado Meals')->assertSee('data-page=', false);
     }
 }

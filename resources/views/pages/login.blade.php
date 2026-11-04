@@ -21,7 +21,7 @@
             <label>Konfirmasi kata sandi<input type="password" name="password_confirmation" placeholder="Ulangi kata sandi" required minlength="8" autocomplete="new-password"></label>
         @endif
         @if ($page === 'signup')
-            <label class="checkbox"><input type="checkbox" required>Saya menyetujui pembuatan akun DapurKita.</label>
+            <label class="checkbox"><input type="checkbox" required>Saya menyetujui pembuatan akun KeenVado Meals.</label>
         @endif
         <button class="button" type="submit">{{ $page === 'signup' ? 'Coba daftar' : 'Masuk demo' }} ↗</button>
     </form>

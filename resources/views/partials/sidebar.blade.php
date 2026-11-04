@@ -1,5 +1,5 @@
 <aside class="sidebar">
-    <a href="{{ route('home') }}" class="brand"><span class="brand-icon">♨</span>Dapur<span>Kita</span><small>TEMAN MASAK SEHARI-HARI</small></a>
+    <a href="{{ route('home') }}" class="brand"><img src="{{ asset('images/logo.jpeg') }}" alt="KeenVado Meals"><span class="brand-name">KeenVado <strong>Meals</strong></span></a>
     <div class="nav-label">JELAJAHI DAPUR</div>
     <nav aria-label="Navigasi utama">
         @foreach (['home' => ['⌂', 'Beranda'], 'chatbot' => ['✧', 'Chatbot resep'], 'recommendations' => ['♡', 'Rekomendasi resep'], 'planner' => ['▦', 'Rencana masak']] as $key => [$icon, $label])
@@ -19,10 +19,18 @@
     <div class="sidebar-bottom">Dibuat untuk dapur Indonesia <span>♡</span></div>
 </aside>
 <nav class="mobile-bottom-nav" aria-label="Navigasi mobile">
-    @foreach (['home' => ['⌂', 'Beranda'], 'chatbot' => ['✧', 'Chatbot'], 'recommendations' => ['♡', 'Rekomendasi'], 'recipes' => ['▤', 'Resep']] as $key => [$icon, $label])
+    @foreach (['home' => ['⌂', 'Beranda'], 'chatbot' => ['✧', 'Chatbot'], 'recommendations' => ['♡', 'Rekomendasi']] as $key => [$icon, $label])
         <a href="{{ route($key) }}" class="mobile-nav-item {{ $page === $key ? 'active' : '' }}" @if($page === $key) aria-current="page" @endif><span>{{ $icon }}</span><small>{{ $label }}</small></a>
     @endforeach
-    @if(auth()->user() && in_array(auth()->user()->email, config('services.admin_emails', []), true))
-        <a href="{{ route('admin.recipes') }}" class="mobile-nav-item {{ $page === 'admin' ? 'active' : '' }}"><span>⚙</span><small>Admin</small></a>
-    @endif
+    <button class="mobile-nav-item" id="mobile-more" type="button" aria-expanded="false"><span>•••</span><small>Lainnya</small></button>
 </nav>
+<div class="mobile-more-menu" id="mobile-more-menu" hidden>
+    <a href="{{ route('dashboard') }}"><span>◫</span>Dashboard</a>
+    <a href="{{ route('recipes') }}"><span>▤</span>Menu resep</a>
+    <a href="{{ route('history') }}"><span>◷</span>Riwayat</a>
+    @auth
+        <form method="POST" action="{{ route('logout') }}">@csrf<button type="submit"><span>↪</span>Keluar</button></form>
+    @else
+        <a href="{{ route('login') }}"><span>→</span>Masuk</a>
+    @endauth
+</div>

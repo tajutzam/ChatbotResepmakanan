@@ -3,8 +3,8 @@
   let recipes = window.recipeData || [];
   const page = document.body.dataset.page;
   const titles = {home:'Beranda',chatbot:'Chatbot resep',recommendations:'Rekomendasi resep',planner:'Rencana masak',dashboard:'Dashboard',recipes:'Menu resep',history:'Riwayat pencarian',login:'Masuk',signup:'Daftar',admin:'Kelola resep'};
-  const read = (key, fallback) => { try { return JSON.parse(localStorage.getItem(`dapurkita.${key}`)) ?? fallback; } catch { return fallback; } };
-  const write = (key, value) => { try { localStorage.setItem(`dapurkita.${key}`, JSON.stringify(value)); } catch { toast('Penyimpanan browser tidak tersedia.'); } };
+  const read = (key, fallback) => { try { return JSON.parse(localStorage.getItem(`keenvado.${key}`)) ?? fallback; } catch { return fallback; } };
+  const write = (key, value) => { try { localStorage.setItem(`keenvado.${key}`, JSON.stringify(value)); } catch { toast('Penyimpanan browser tidak tersedia.'); } };
   let saved = read('saved', []), history = read('history', []), plan = read('plan', {}), category = 'Semua resep', query = new URLSearchParams(location.search).get('q') || '', onlySaved = false, toastTimer;
   let chatHistory = [], recipesLoading = true, userDataLoading = Boolean(document.body.dataset.authenticated === '1');
   const userData = async () => { if (!userDataLoading) return; try { const response = await fetch('/api/user-data', { headers: { Accept: 'application/json' } }); if (!response.ok) return; const data = await response.json(); saved = (data.favorites || []).map(String); history = data.history || []; } finally { userDataLoading = false; } };
@@ -36,7 +36,7 @@
     messages.append(userMessage);
     const pending = document.createElement('div');
     pending.className = 'message';
-    pending.textContent = 'Sedang mencari resep di koleksi DapurKita…';
+    pending.textContent = 'Sedang mencari resep di koleksi KeenVado Meals…';
     messages.append(pending);
     messages.scrollTop = messages.scrollHeight;
     try {
@@ -58,7 +58,8 @@
       reply.className = 'message';
       const intro = document.createElement('p');
       intro.className = 'chat-reply-text';
-      intro.textContent = result.message;
+      const renderReply = value => String(value).replace(/[&<>"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[character]).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>').replace(/\n/g, '<br>');
+      intro.innerHTML = renderReply(result.message);
       reply.append(intro);
       chatHistory.push({ role: 'user', content: message }, { role: 'assistant', content: result.message });
       if ((result.recipes || []).length) {
@@ -85,6 +86,10 @@
         ingredients.className = 'chat-recipe-text';
         ingredients.textContent = recipe.ingredients;
         card.append(ingredients);
+        const planControl = document.createElement('div');
+        planControl.className = 'chat-plan-control';
+        planControl.innerHTML = `<select data-plan-recipe="${recipe.id}" aria-label="Pilih hari untuk ${recipe.title}"><option value="">Pilih hari...</option>${['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'].map(day => `<option value="${day}">${day}</option>`).join('')}</select><button class="text-button" type="button" data-plan-recipe="${recipe.id}">Simpan ke rencana</button>`;
+        card.append(planControl);
         if (recipe.steps) {
           const details = document.createElement('details');
           const summary = document.createElement('summary');
@@ -103,7 +108,7 @@
     }
     messages.scrollTop = messages.scrollHeight;
   };
-  document.querySelector('#breadcrumb').textContent = titles[page]; document.title = `${titles[page]} — DapurKita`;
+  document.querySelector('#breadcrumb').textContent = titles[page]; document.title = `${titles[page]} — KeenVado Meals`;
   const searchRecipes = async value => {
     const list = document.querySelector('#recipe-list');
     if (list) list.innerHTML = loadingMarkup;
@@ -136,7 +141,7 @@
   loadRecipes();
   document.addEventListener('click', event => { const recipeCard = event.target.closest('.recipe-card[data-detail]'); if (recipeCard && !event.target.closest('button')) detail(recipeCard.dataset.detail); });
   document.addEventListener('keydown', event => { if ((event.key === 'Enter' || event.key === ' ') && event.target.matches('.recipe-card[data-detail]')) { event.preventDefault(); detail(event.target.dataset.detail); } });
-  document.addEventListener('click', event => { const button = event.target.closest('button'); if (!button) return; if (button.dataset.detail) detail(button.dataset.detail); if (button.classList.contains('close')) document.querySelector('#recipe-dialog').close(); if (button.dataset.save) { const id = String(button.dataset.save); saved = saved.includes(id) ? saved.filter(item => item !== id) : [...saved, id]; if (document.body.dataset.authenticated !== '1') write('saved', saved); saveUserData('/api/favorites/toggle', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ recipe_id: id }) }); renderCards(); renderDashboard(); } if (button.dataset.category) { category = button.dataset.category; document.querySelectorAll('[data-category]').forEach(item => item.classList.toggle('active', item.dataset.category === category)); renderCards(); }     if (button.dataset.quick) { record(button.dataset.quick); location.href = `/rekomendasi?q=${encodeURIComponent(button.dataset.quick)}`; } if (button.dataset.chat) { chat(button.dataset.chat); } if (button.id === 'reset-chat') { chatHistory = []; document.querySelector('#messages').innerHTML = '<div class="message">Halo, Teman Dapur!<br>Ada bahan apa di dapurmu hari ini?</div>'; } if (button.id === 'clear-history') { history = []; if (document.body.dataset.authenticated !== '1') write('history', history); saveUserData('/api/history', { method: 'DELETE' }); renderHistory(); } if (button.dataset.deleteHistory !== undefined) { const historyIndex = Number(button.dataset.deleteHistory); const historyItem = history[historyIndex]; history.splice(historyIndex, 1); if (document.body.dataset.authenticated !== '1') write('history', history); if (historyItem?.id) saveUserData(`/api/history/${historyItem.id}`, { method: 'DELETE' }); renderHistory(); } });
+  document.addEventListener('click', event => { const button = event.target.closest('button'); if (!button) return; if (button.dataset.detail) detail(button.dataset.detail); if (button.classList.contains('close')) document.querySelector('#recipe-dialog').close(); if (button.dataset.save) { const id = String(button.dataset.save); saved = saved.includes(id) ? saved.filter(item => item !== id) : [...saved, id]; if (document.body.dataset.authenticated !== '1') write('saved', saved); saveUserData('/api/favorites/toggle', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ recipe_id: id }) }); renderCards(); renderDashboard(); } if (button.dataset.category) { category = button.dataset.category; document.querySelectorAll('[data-category]').forEach(item => item.classList.toggle('active', item.dataset.category === category)); renderCards(); }     if (button.dataset.quick) { record(button.dataset.quick); location.href = `/rekomendasi?q=${encodeURIComponent(button.dataset.quick)}`; } if (button.dataset.chat) { chat(button.dataset.chat); } if (button.dataset.planRecipe) { const select = document.querySelector(`select[data-plan-recipe="${button.dataset.planRecipe}"]`); if (!select?.value) { toast('Pilih hari terlebih dahulu.'); return; } plan[select.value] = button.dataset.planRecipe; write('plan', plan); toast(`${select.value} ditambahkan ke rencana masak.`); } if (button.id === 'reset-chat') { chatHistory = []; document.querySelector('#messages').innerHTML = '<div class="message">Halo, Teman Dapur!<br>Ada bahan apa di dapurmu hari ini?</div>'; } if (button.id === 'mobile-more') { const menu = document.querySelector('#mobile-more-menu'); const open = menu.hidden; menu.hidden = !open; button.setAttribute('aria-expanded', String(open)); } if (button.id === 'clear-history') { history = []; if (document.body.dataset.authenticated !== '1') write('history', history); saveUserData('/api/history', { method: 'DELETE' }); renderHistory(); } if (button.dataset.deleteHistory !== undefined) { const historyIndex = Number(button.dataset.deleteHistory); const historyItem = history[historyIndex]; history.splice(historyIndex, 1); if (document.body.dataset.authenticated !== '1') write('history', history); if (historyItem?.id) saveUserData(`/api/history/${historyItem.id}`, { method: 'DELETE' }); renderHistory(); } });
   document.addEventListener('submit', async event => { const form = event.target; if (form.id === 'auth-form' || form.classList.contains('logout-form')) return; event.preventDefault(); if (form.id === 'search-form') { query = form.elements.q.value.trim(); if (query) record(query); if (page === 'home') location.href = `/rekomendasi?q=${encodeURIComponent(query)}`; else if (query.length >= 2) searchRecipes(query); else loadRecipes(); } if (form.id === 'chat-form') { chat(form.elements.message.value); form.reset(); } });
   document.addEventListener('change', event => { const element = event.target; if (element.id === 'saved-filter') { onlySaved = element.value === 'saved'; renderCards(); } if (element.dataset.day) { if (element.value) plan[element.dataset.day] = Number(element.value); else delete plan[element.dataset.day]; write('plan', plan); renderPlanner(); } });
   document.querySelector('#recipe-dialog')?.addEventListener('click', event => { if (event.target === event.currentTarget) event.currentTarget.close(); });

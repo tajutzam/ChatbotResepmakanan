@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#ed7626">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="description" content="Temukan inspirasi resep dari bahan yang ada di dapurmu bersama DapurKita.">
-    <title>DapurKita — Teman masak sehari-hari</title>
+    <meta name="description" content="Temukan inspirasi resep dari bahan yang ada di dapurmu bersama KeenVado Meals.">
+    <title>KeenVado Meals — Teman masak sehari-hari</title>
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     <style>
-        .mobile-bottom-nav{display:none}
+        .mobile-bottom-nav{display:none}.mobile-more-menu{display:none}
         @media (max-width: 640px){
             body{padding-bottom:calc(74px + env(safe-area-inset-bottom))}
             .sidebar{display:none}
@@ -24,7 +24,7 @@
             .mobile-nav-item{display:flex;min-width:58px;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:5px 2px;border-radius:10px;color:#928b83;font-size:20px;line-height:1}
             .mobile-nav-item small{font-size:9px;font-weight:600;white-space:nowrap}
             .mobile-nav-item.active{background:var(--pale);color:var(--orange)}
-            .mobile-nav-item:focus-visible{outline-offset:-2px}
+             .mobile-nav-item:focus-visible{outline-offset:-2px}.mobile-more-menu{display:grid;position:fixed;z-index:60;right:12px;bottom:76px;left:12px;gap:4px;padding:10px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 30px rgba(48,45,41,.16)}.mobile-more-menu[hidden]{display:none}.mobile-more-menu a,.mobile-more-menu button{display:flex;align-items:center;gap:12px;width:100%;padding:12px;border:0;border-radius:9px;background:transparent;color:var(--ink);font-size:13px;text-align:left}.mobile-more-menu a:hover,.mobile-more-menu button:hover{background:var(--pale)}.mobile-more-menu span{width:20px;color:var(--orange);font-size:18px}
             .recipe-grid{grid-template-columns:1fr;gap:14px}
             .filter-row{display:grid;grid-template-columns:1fr;gap:10px}
             .admin-recipe{padding:17px}
