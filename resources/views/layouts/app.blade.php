@@ -7,7 +7,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="description" content="Temukan inspirasi resep dari bahan yang ada di dapurmu bersama KeenVado Meals.">
     <title>KeenVado Meals — Teman masak sehari-hari</title>
-    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}?v={{ filemtime(public_path('css/app.css')) }}">
     <style>
         .mobile-bottom-nav{display:none}.mobile-more-menu{display:none}
         @media (max-width: 640px){
@@ -40,7 +40,7 @@
         .chat-related-title{margin:18px 0 8px;font-size:14px;color:var(--ink)}
     </style>
     <script>window.recipeData = @json(config('recipes'));</script>
-    <script src="{{ asset('js/app.js') }}" defer></script>
+    <script src="{{ asset('js/app.js') }}?v={{ filemtime(public_path('js/app.js')) }}" defer></script>
 </head>
 <body data-page="{{ $page }}" data-authenticated="{{ auth()->check() ? '1' : '0' }}">
     @include('partials.sidebar')
