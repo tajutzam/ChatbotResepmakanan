@@ -38,6 +38,14 @@ def replace_recipe_embeddings(documents: list[dict[str, Any]]) -> int:
     return len(documents)
 
 
+def replace_all_recipe_embeddings(documents: list[dict[str, Any]]) -> int:
+    collection = get_collection()
+    collection.delete_many({})
+    if documents:
+        collection.insert_many(documents)
+    return len(documents)
+
+
 def update_recipe(recipe_id: str, fields: dict[str, Any]) -> bool:
     result = get_collection().update_one({'id': recipe_id}, {'$set': fields})
     return result.matched_count > 0

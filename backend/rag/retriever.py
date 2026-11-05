@@ -11,7 +11,7 @@ from xml.etree import ElementTree
 import numpy as np
 
 from .embedding import generate_embeddings
-from .vectorstore import has_recipe_embeddings, load_recipe_embeddings, replace_recipe_embeddings, update_recipe
+from .vectorstore import has_recipe_embeddings, load_recipe_embeddings, replace_all_recipe_embeddings, replace_recipe_embeddings, update_recipe
 
 DATASET_DIRECTORY = Path(__file__).resolve().parents[1] / "dataset"
 
@@ -98,7 +98,7 @@ def build_recipe_embeddings() -> int:
     recipe_list = list(recipes.values())
     vectors = generate_embeddings([recipe['document'] for recipe in recipe_list])
     documents = [{**recipe, 'embedding_vector': vector.tolist()} for recipe, vector in zip(recipe_list, vectors)]
-    return replace_recipe_embeddings(documents)
+    return replace_all_recipe_embeddings(documents)
 
 
 def update_recipe_embedding(recipe_id: str, title: str, ingredients: str, steps: str) -> bool:
