@@ -209,6 +209,14 @@ def chat() -> tuple[Any, int]:
     )
     recipes = []
     plan_days = requested_plan_days(clean_message)
+    if plan_days is None and re.search(r"\b(?:mau|ingin|jadi|buat)\s+(?:yang\s+)?(\d+)\b", clean_message.lower()):
+        previous_plan_request = any(
+            requested_plan_days(turn["content"]) is not None
+            for turn in history
+            if turn.get("role") == "user"
+        )
+        if previous_plan_request:
+            plan_days = int(re.search(r"\b(?:mau|ingin|jadi|buat)\s+(?:yang\s+)?(\d+)\b", clean_message.lower()).group(1))
     is_weekly_plan = plan_days is not None
 
     is_supported_plan = plan_days in {3, 5, 7}
@@ -216,7 +224,7 @@ def chat() -> tuple[Any, int]:
 
     if is_unsupported_plan:
         try:
-            reply = generate_recipe_reply(clean_message, history, [], True)
+            reply = generate_recipe_reply(clean_message, history, [], True, plan_days)['message']
         except GeminiNotConfiguredError:
             reply = 'Rencana resep hanya bisa dibuat untuk 3, 5, atau 7 hari.'
         except GeminiRequestError as error:
@@ -252,7 +260,8 @@ def chat() -> tuple[Any, int]:
         ]
 
     try:
-        reply = generate_recipe_reply(clean_message, history, recipes, is_weekly_plan)
+        generated = generate_recipe_reply(clean_message, history, recipes, is_weekly_plan, plan_days)
+        reply = generated['message']
     except GeminiNotConfiguredError:
         reply = "Gemini belum dikonfigurasi. Isi GEMINI_API_KEY di backend/.env untuk mengaktifkan jawaban AI."
     except GeminiRequestError as error:
