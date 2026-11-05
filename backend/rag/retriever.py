@@ -111,6 +111,11 @@ class RecipeRetriever:
         if not has_recipe_embeddings():
             raise RuntimeError("Embedding resep belum tersedia. Jalankan proses ingest terlebih dahulu.")
         self.recipes = load_recipe_embeddings()
+        dimensions = {len(recipe.get('embedding_vector', [])) for recipe in self.recipes}
+        if len(dimensions) != 1:
+            raise RuntimeError(
+                f'Dimensi vector MongoDB bercampur: {sorted(dimensions)}. Jalankan python rebuild_embeddings.py.'
+            )
         self.recipe_embeddings = np.array([recipe["embedding_vector"] for recipe in self.recipes])
         expected_dimension = generate_embeddings(['validasi dimensi embedding']).shape[1]
         if self.recipe_embeddings.shape[1] != expected_dimension:
