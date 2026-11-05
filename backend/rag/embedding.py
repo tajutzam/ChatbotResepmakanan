@@ -2,7 +2,10 @@ import os
 from functools import lru_cache
 
 import numpy as np
+from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
+
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
 
 
 @lru_cache(maxsize=1)

@@ -112,6 +112,11 @@ class RecipeRetriever:
             raise RuntimeError("Embedding resep belum tersedia. Jalankan proses ingest terlebih dahulu.")
         self.recipes = load_recipe_embeddings()
         self.recipe_embeddings = np.array([recipe["embedding_vector"] for recipe in self.recipes])
+        expected_dimension = generate_embeddings(['validasi dimensi embedding']).shape[1]
+        if self.recipe_embeddings.shape[1] != expected_dimension:
+            raise RuntimeError(
+                f'Dimensi embedding tidak cocok: database {self.recipe_embeddings.shape[1]}, model {expected_dimension}. Jalankan embedding ulang dari halaman admin.'
+            )
 
     def search_relevant_recipes(self, query_text: str, top_k: int = 3) -> list[dict[str, object]]:
         query_embedding = generate_embeddings([query_text])[0]

@@ -1,8 +1,12 @@
 import os
 from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
+from dotenv import load_dotenv
 from pymongo import MongoClient, UpdateOne
+
+load_dotenv(Path(__file__).resolve().parents[1] / '.env')
 
 
 @lru_cache(maxsize=1)
