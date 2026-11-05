@@ -45,10 +45,11 @@ def requested_plan_days(message: str) -> int | None:
 
 @chatbot_blueprint.get("/health")
 def health() -> tuple[Any, int]:
-    return jsonify({
-        "status": "ok",
-        "embedding_ready": has_recipe_embeddings(),
-    }), 200
+    try:
+        retriever = get_recipe_retriever()
+        return jsonify({"status": "ok", "embedding_ready": True, "count": len(retriever.recipes)}), 200
+    except RuntimeError as error:
+        return jsonify({"status": "error", "embedding_ready": False, "message": str(error)}), 503
 
 
 @chatbot_blueprint.get("/recipes")
@@ -229,9 +230,10 @@ def chat() -> tuple[Any, int]:
         if retriever is None:
             try:
                 retriever = get_recipe_retriever()
-            except RuntimeError:
+            except RuntimeError as error:
+                current_app.logger.exception("Recipe retriever initialization failed")
                 return jsonify({
-                    "message": "Embedding resep belum tersedia. Jalankan proses ingest terlebih dahulu.",
+                    "message": str(error),
                     "recipes": [],
                 }), 503
             current_app.extensions["recipe_retriever"] = retriever
