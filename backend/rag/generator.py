@@ -41,9 +41,9 @@ def generate_recipe_reply(
         "\n".join(
             [
                 f"Resep {index}: {recipe['title']}",
-                f"Sumber: {recipe['source']}",
-                f"Bahan: {recipe['ingredients']}",
-                f"Langkah: {recipe['steps']}",
+                f"Sumber: {recipe.get('source', 'Dataset resep')}",
+                f"Bahan: {recipe.get('ingredients', '')}",
+                f"Langkah: {recipe.get('steps', '')}",
             ]
         )
         for index, recipe in enumerate(recipes, start=1)
